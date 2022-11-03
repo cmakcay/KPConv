@@ -39,7 +39,7 @@ from datasets.S3DIS import S3DISDataset
 from datasets.Scannet import ScannetDataset
 from datasets.NPM3D import NPM3DDataset
 from datasets.Semantic3D import Semantic3DDataset
-
+from datasets.Synthetic import SyntheticDataset
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -80,7 +80,12 @@ def test_caller(path, step_ind, on_val):
     #config.augment_noise = 0.0001
     #config.augment_color = 1.0
     config.validation_size = 500
+    config.input_threads = 8
     #config.batch_num = 10
+
+    # Do we need to save convergence
+    config.saving = True
+    config.saving_path = "/cluster/scratch/cakcay/kpconvlogs/synthetic_real_w_noise/test_snapshot_-1"
 
     ##############
     # Prepare Data
@@ -104,6 +109,8 @@ def test_caller(path, step_ind, on_val):
         dataset = NPM3DDataset(config.input_threads, load_test=(not on_val))
     elif config.dataset == 'Semantic3D':
         dataset = Semantic3DDataset(config.input_threads)
+    elif config.dataset == 'Synthetic':
+        dataset = SyntheticDataset(config.input_threads, load_test=(not on_val))
     else:
         raise ValueError('Unsupported dataset : ' + config.dataset)
 
@@ -131,6 +138,8 @@ def test_caller(path, step_ind, on_val):
     elif config.dataset.startswith('S3DIS'):
         model = KernelPointFCNN(dataset.flat_inputs, config)
     elif config.dataset.startswith('Scannet'):
+        model = KernelPointFCNN(dataset.flat_inputs, config)
+    elif config.dataset.startswith('Synthetic'):
         model = KernelPointFCNN(dataset.flat_inputs, config)
     elif config.dataset.startswith('NPM3D'):
         model = KernelPointFCNN(dataset.flat_inputs, config)
@@ -174,6 +183,11 @@ def test_caller(path, step_ind, on_val):
     elif config.dataset.startswith('Scannet'):
         if on_val:
             tester.test_cloud_segmentation_on_val(model, dataset)
+        else:
+            tester.test_cloud_segmentation(model, dataset)
+    elif config.dataset.startswith('Synthetic'):
+        if on_val:
+            tester.test_cloud_segmentation(model, dataset)
         else:
             tester.test_cloud_segmentation(model, dataset)
     elif config.dataset.startswith('Semantic3D'):
@@ -223,7 +237,7 @@ if __name__ == '__main__':
     #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
     #
 
-    chosen_log = 'last_ModelNet40'
+    # chosen_log = 'kpconvlog_2'
 
     #
     #   You can also choose the index of the snapshot to load (last by default)
@@ -254,24 +268,25 @@ if __name__ == '__main__':
                     'last_Semantic3D']
 
     # Automatically retrieve the last trained model
-    if chosen_log in handled_logs:
-
+    # if chosen_log in handled_logs:
+    # if True:
         # Dataset name
-        test_dataset = '_'.join(chosen_log.split('_')[1:])
+        # test_dataset = '_'.join(chosen_log.split('_')[1:])
 
         # List all training logs
-        logs = np.sort([os.path.join('results', f) for f in os.listdir('results') if f.startswith('Log')])
-
+        # logs = np.sort([os.path.join('results', f) for f in os.listdir('results') if f.startswith('Log')])
         # Find the last log of asked dataset
-        for log in logs[::-1]:
-            log_config = Config()
-            log_config.load(log)
-            if log_config.dataset.startswith(test_dataset):
-                chosen_log = log
-                break
+        # for log in logs[::-1]:
+        #     log_config = Config()
+        #     log_config.load(log)
+        #     if log_config.dataset.startswith(test_dataset):
+        #         chosen_log = log
+        #         break
 
-        if chosen_log in handled_logs:
-            raise ValueError('No log of the dataset "' + test_dataset + '" found')
+        # if chosen_log in handled_logs:
+        #     raise ValueError('No log of the dataset "' + test_dataset + '" found')
+
+    chosen_log = "/cluster/scratch/cakcay/kpconvlogs/synthetic_real_w_noise"
 
     # Check if log exists
     if not os.path.exists(chosen_log):
